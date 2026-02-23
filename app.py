@@ -5,6 +5,7 @@ import logging
 import sys
 import time
 
+# اضافه کردن مسیر برای import کردن main.py
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__)
@@ -24,34 +25,35 @@ def health():
     return "OK", 200
 
 
-def start_bot():
+def run_bot():
+    """اجرای ربات اصلی"""
     global bot_started
     if bot_started:
         return
 
     try:
         bot_started = True
-        logger.info("شروع ربات در thread جداگانه...")
+        logger.info("شروع ربات...")
 
         import main
+        # اینجا main.py باید تابع main رو صدا بزنه
         if hasattr(main, 'main'):
-            # main الان فقط thread رو شروع می‌کنه
             main.main()
         else:
             logger.error("تابع main پیدا نشد!")
 
     except Exception as e:
-        logger.error(f"خطا در شروع ربات: {e}")
+        logger.error(f"خطا: {e}")
         bot_started = False
 
 
 # شروع ربات بعد از راه‌اندازی Flask
 with app.app_context():
-    thread = threading.Thread(target=start_bot)
+    thread = threading.Thread(target=run_bot)
     thread.daemon = True
     thread.start()
-    time.sleep(3)  # صبر برای شروع ربات
+    time.sleep(2)  # صبر برای شروع ربات
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
