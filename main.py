@@ -4,8 +4,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 import json
 import os
 from datetime import datetime
-import threading
-import time
+import requests
 
 # تنظیمات logging
 logging.basicConfig(
@@ -297,8 +296,286 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
 
-    # اینجا بقیه هندلرهای دکمه‌ها ادامه داره...
-    # برای خلاصه‌سازی، بقیه هندلرها رو حذف کردم ولی توی فایل اصلی باید باشن
+    elif query.data == 'costs_menu':
+        context.user_data['action'] = 'new_cost'
+        context.user_data['step'] = 'waiting_cost_title'
+        await query.edit_message_text(
+            "📝 **ثبت هزینه جدید**\n\n"
+            "لطفاً عنوان هزینه رو وارد کن:\n"
+            "(مثال: اجاره مغازه)\n\n"
+            "💡 برای انصراف /cancel رو بزن",
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'list_buys_menu':
+        if not bot_accounting.data['purchases']:
+            await query.edit_message_text(
+                "❌ هیچ خریدی ثبت نشده است.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                ]])
+            )
+            return
+
+        text = "📋 **لیست خریدها:**\n\n"
+        keyboard = []
+
+        for i, p in enumerate(bot_accounting.data['purchases'][-10:], 1):
+            status = "✅ فروخته شده" if p.get('sold') else "🟢 در انبار"
+            btn_text = f"{i}. {p['model']} - {format_price(p['total_cost'])} تومان ({status})"
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"view_purchase_{p['id']}")])
+
+        keyboard.append([InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+
+    elif query.data == 'list_sales_menu':
+        if not bot_accounting.data['sales']:
+            await query.edit_message_text(
+                "❌ هیچ فروشی ثبت نشده است.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                ]])
+            )
+            return
+
+        text = "📋 **لیست فروش‌ها:**\n\n"
+        keyboard = []
+
+        for i, s in enumerate(bot_accounting.data['sales'][-10:], 1):
+            profit_emoji = "📈" if s.get('profit', 0) >= 0 else "📉"
+            btn_text = f"{i}. {s['model']} - {format_price(s['sell_price'])} تومان {profit_emoji}"
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"view_sale_{s['id']}")])
+
+        keyboard.append([InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+
+    elif query.data == 'transactions':
+        if not bot_accounting.data['transactions']:
+            await query.edit_message_text(
+                "❌ هیچ تراکنشی ثبت نشده است.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                ]])
+            )
+            return
+
+        text = "📜 **آخرین تراکنش‌ها:**\n\n"
+        for i, t in enumerate(bot_accounting.data['transactions'][-10:], 1):
+            amount = t['amount']
+            amount_emoji = "💰" if amount > 0 else "💸"
+            text += f"{i}. {amount_emoji} {t['type']} - {t['date']}\n"
+            text += f"   {t['model']}\n"
+            text += f"   مبلغ: {format_price(abs(amount))} تومان\n"
+            if t.get('profit'):
+                text += f"   سود: {format_price(t['profit'])} تومان\n"
+
+        await update.message.reply_text(
+            text,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+            ]])
+        )
+
+    elif query.data == 'partner_menu':
+        keyboard = [
+            [InlineKeyboardButton("👤 تراکنش رضا", callback_data='partner_reza')],
+            [InlineKeyboardButton("👤 تراکنش میلاد", callback_data='partner_milad')],
+            [InlineKeyboardButton("💰 وضعیت شرکا", callback_data='partner_balance_menu')],
+            [InlineKeyboardButton("📜 لیست تراکنش‌ها", callback_data='list_partner')],
+            [InlineKeyboardButton("🏠 بازگشت", callback_data='main_menu')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "👥 **مدیریت تراکنش شرکا**\n\nانتخاب کنید:",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'partner_balance_menu':
+        reza_balance, milad_balance = bot_accounting.calculate_partner_balances()
+
+        text = "👥 **وضعیت بدهکار و بستانکاری شرکا:**\n\n"
+        text += f"**رضا:** {format_price(abs(reza_balance))} تومان ({'✅ بستانکار' if reza_balance >= 0 else '❌ بدهکار'})\n"
+        text += f"**میلاد:** {format_price(abs(milad_balance))} تومان ({'✅ بستانکار' if milad_balance >= 0 else '❌ بدهکار'})\n\n"
+        text += "📌 **راهنما:**\n"
+        text += "• ✅ **بستانکار:** شرکت به شریک بدهکار است\n"
+        text += "• ❌ **بدهکار:** شریک به شرکت بدهکار است"
+
+        await query.edit_message_text(text, parse_mode='Markdown')
+
+    elif query.data == 'debt_menu':
+        keyboard = [
+            [InlineKeyboardButton("💳 پرداخت بدهی فروش", callback_data='pay_sale_debt')],
+            [InlineKeyboardButton("💳 پرداخت بدهی خرید", callback_data='pay_purchase_debt')],
+            [InlineKeyboardButton("📊 وضعیت بدهی‌ها", callback_data='debt_status')],
+            [InlineKeyboardButton("🏠 بازگشت", callback_data='main_menu')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "💳 **مدیریت بدهی‌ها**\n\nانتخاب کنید:",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'set_initial_capital':
+        context.user_data['action'] = 'set_capital'
+        await query.edit_message_text(
+            "💰 **ثبت سرمایه اولیه**\n\n"
+            "لطفاً مبلغ سرمایه اولیه رو به تومان وارد کن:\n"
+            "(مثال: 10000000)\n\n"
+            "💡 برای انصراف /cancel رو بزن",
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'backup_menu':
+        inventory = [p for p in bot_accounting.data['purchases'] if not p.get('sold', False)]
+
+        if inventory:
+            backup_data = {
+                'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'type': 'inventory_backup',
+                'items': inventory
+            }
+
+            filename = f"inventory_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(backup_data, f, ensure_ascii=False, indent=2)
+
+            with open(filename, 'rb') as f:
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=f,
+                    filename=filename,
+                    caption=f"📦 پشتیبان انبار - {len(inventory)} قلم"
+                )
+
+            os.remove(filename)
+
+            await query.edit_message_text(
+                "✅ فایل پشتیبان ارسال شد.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                ]])
+            )
+        else:
+            await query.edit_message_text(
+                "❌ انبار خالی است!",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                ]])
+            )
+
+    elif query.data == 'restore_menu':
+        context.user_data['action'] = 'restore_inventory'
+        await query.edit_message_text(
+            "🔄 **بازیابی انبار**\n\n"
+            "لطفاً فایل پشتیبان JSON رو ارسال کن.",
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'help':
+        help_text = """
+❓ **راهنمای استفاده از ربات**
+
+📌 **دستورات موجود:**
+/start - منوی اصلی
+/dashboard - داشبورد مالی
+/buy - ثبت خرید جدید
+/sell - ثبت فروش جدید
+/costs - ثبت هزینه جاری
+/list_buys - لیست خریدها
+/list_sales - لیست فروش‌ها
+/transactions - تراکنش‌ها
+/partners - منوی شرکا
+/partner_balance - وضعیت شرکا
+/debts - مدیریت بدهی‌ها
+/backup - پشتیبان‌گیری از انبار
+/restore - بازیابی انبار
+/capital - ثبت سرمایه اولیه
+/cancel - لغو عملیات جاری
+/help - راهنما
+
+📝 **نکات مهم:**
+• برای وارد کردن مبلغ، عدد بدون کاما وارد کن
+• برای رد کردن هر مرحله از - استفاده کن
+• همه اطلاعات در فایل ذخیره میشه
+        """
+        await query.edit_message_text(help_text, parse_mode='Markdown')
+
+    elif query.data == 'clear_all':
+        keyboard = [
+            [InlineKeyboardButton("✅ بله، پاک کن", callback_data='confirm_clear')],
+            [InlineKeyboardButton("❌ خیر، برگشت", callback_data='main_menu')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "⚠️ **هشدار!**\n\nآیا از پاک کردن همه داده‌ها مطمئنی؟ این عمل غیرقابل بازگشت هست.",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'confirm_clear':
+        bot_accounting.data = bot_accounting.get_default_data()
+        bot_accounting.save_data()
+        await query.edit_message_text(
+            "✅ همه داده‌ها با موفقیت پاک شدند.",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+            ]])
+        )
+
+    # هندلرهای اضافی برای دکمه‌های دیگه
+    elif query.data == 'partner_reza':
+        context.user_data['partner'] = 'reza'
+        context.user_data['action'] = 'partner_transaction'
+        await query.edit_message_text(
+            "👤 **تراکنش رضا**\n\n"
+            "لطفاً نوع عملیات رو انتخاب کن:\n\n"
+            "1️⃣ برداشت نقدی\n"
+            "2️⃣ واریز نقدی\n"
+            "3️⃣ هزینه شخصی\n"
+            "4️⃣ استفاده از دارایی\n\n"
+            "شماره گزینه رو وارد کن:",
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'partner_milad':
+        context.user_data['partner'] = 'milad'
+        context.user_data['action'] = 'partner_transaction'
+        await query.edit_message_text(
+            "👤 **تراکنش میلاد**\n\n"
+            "لطفاً نوع عملیات رو انتخاب کن:\n\n"
+            "1️⃣ برداشت نقدی\n"
+            "2️⃣ واریز نقدی\n"
+            "3️⃣ هزینه شخصی\n"
+            "4️⃣ استفاده از دارایی\n\n"
+            "شماره گزینه رو وارد کن:",
+            parse_mode='Markdown'
+        )
+
+    elif query.data == 'list_partner':
+        if not bot_accounting.data['partner_transactions']:
+            await query.edit_message_text(
+                "❌ هیچ تراکنش شرکایی ثبت نشده است.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🏠 بازگشت", callback_data='partner_menu')
+                ]])
+            )
+            return
+
+        text = "👥 **تراکنش‌های شرکا:**\n\n"
+        for i, t in enumerate(bot_accounting.data['partner_transactions'][-10:], 1):
+            partner = "رضا" if t['partner'] == 'reza' else "میلاد"
+            text += f"{i}. {partner} - {t['date']}\n"
+            text += f"   مبلغ: {format_price(t['amount'])} تومان\n"
+            text += f"   شرح: {t['description'][:50]}\n\n"
+
+        await query.edit_message_text(text, parse_mode='Markdown')
 
 
 # ==================== توابع کمکی ====================
@@ -416,7 +693,7 @@ async def list_buys_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "📋 **لیست خریدها:**\n\n"
     keyboard = []
 
-    for i, p in enumerate(bot_accounting.data['purchases'][-20:], 1):
+    for i, p in enumerate(bot_accounting.data['purchases'][-10:], 1):
         status = "✅ فروخته شده" if p.get('sold') else "🟢 در انبار"
         btn_text = f"{i}. {p['model']} - {format_price(p['total_cost'])} تومان ({status})"
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"view_purchase_{p['id']}")])
@@ -441,7 +718,7 @@ async def list_sales_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text = "📋 **لیست فروش‌ها:**\n\n"
     keyboard = []
 
-    for i, s in enumerate(bot_accounting.data['sales'][-20:], 1):
+    for i, s in enumerate(bot_accounting.data['sales'][-10:], 1):
         profit_emoji = "📈" if s.get('profit', 0) >= 0 else "📉"
         btn_text = f"{i}. {s['model']} - {format_price(s['sell_price'])} تومان {profit_emoji}"
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"view_sale_{s['id']}")])
@@ -488,7 +765,7 @@ async def partners_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("👤 تراکنش رضا", callback_data='partner_reza')],
         [InlineKeyboardButton("👤 تراکنش میلاد", callback_data='partner_milad')],
-        [InlineKeyboardButton("💰 وضعیت بدهکار/بستانکار", callback_data='partner_balance_menu')],
+        [InlineKeyboardButton("💰 وضعیت شرکا", callback_data='partner_balance_menu')],
         [InlineKeyboardButton("📜 لیست تراکنش‌ها", callback_data='list_partner')],
         [InlineKeyboardButton("🏠 بازگشت", callback_data='main_menu')]
     ]
@@ -638,19 +915,151 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     user_data = context.user_data
 
-    # اینجا منطق پردازش پیام‌ها بر اساس user_data['action'] و user_data['step']
-    # برای خلاصه‌سازی، این بخش رو حذف کردم
-    await update.message.reply_text("پیام دریافت شد. برای شروع از منوی اصلی استفاده کنید.")
+    # اگه پیام /start بود
+    if text == '/start':
+        await start(update, context)
+        return
+
+    # اگه کاربر در حال انجام عملیات هست
+    if user_data and 'action' in user_data:
+        action = user_data.get('action')
+
+        if action == 'set_capital':
+            try:
+                amount = int(text.replace(',', ''))
+                bot_accounting.data['initial_capital'] = amount
+                bot_accounting.save_data()
+
+                transaction = {
+                    'id': int(datetime.now().timestamp() * 1000),
+                    'date': datetime.now().strftime('%Y/%m/%d'),
+                    'type': 'سرمایه اولیه',
+                    'model': '-',
+                    'amount': amount,
+                    'debt': 0,
+                    'profit': 0,
+                    'description': 'ثبت سرمایه اولیه'
+                }
+                bot_accounting.data['transactions'].insert(0, transaction)
+                bot_accounting.save_data()
+
+                await update.message.reply_text(
+                    f"✅ سرمایه اولیه با مبلغ {format_price(amount)} تومان ثبت شد.",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                    ]])
+                )
+                user_data.clear()
+            except:
+                await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+
+        elif action == 'partner_transaction':
+            # منطق ثبت تراکنش شریک
+            try:
+                amount = int(text.replace(',', ''))
+                user_data['amount'] = amount
+                await update.message.reply_text("📝 لطفاً شرح تراکنش رو وارد کن:")
+                user_data['step'] = 'waiting_description'
+            except:
+                await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+
+        elif action == 'new_buy':
+            # منطق ثبت خرید
+            step = user_data.get('step')
+            if step == 'waiting_buy_model':
+                user_data['model'] = text
+                user_data['step'] = 'waiting_buy_price'
+                await update.message.reply_text("💰 قیمت خرید رو وارد کن:")
+            elif step == 'waiting_buy_price':
+                try:
+                    user_data['price'] = int(text.replace(',', ''))
+                    user_data['step'] = 'waiting_buy_delivery'
+                    await update.message.reply_text("🚚 هزینه پیک رو وارد کن (0 اگه نداره):")
+                except:
+                    await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+            elif step == 'waiting_buy_delivery':
+                try:
+                    user_data['delivery'] = int(text.replace(',', ''))
+                    user_data['step'] = 'waiting_buy_extra'
+                    await update.message.reply_text("💰 هزینه جانبی رو وارد کن (0 اگه نداره):")
+                except:
+                    await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+            elif step == 'waiting_buy_extra':
+                try:
+                    user_data['extra'] = int(text.replace(',', ''))
+                    user_data['step'] = 'waiting_buy_debt'
+                    await update.message.reply_text("⚠️ بدهی به فروشنده رو وارد کن (0 اگه نقدی):")
+                except:
+                    await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+            elif step == 'waiting_buy_debt':
+                try:
+                    user_data['debt'] = int(text.replace(',', ''))
+                    user_data['step'] = 'waiting_buy_notes'
+                    await update.message.reply_text("📝 توضیحات (یا - برای رد کردن):")
+                except:
+                    await update.message.reply_text("❌ لطفاً یک عدد معتبر وارد کن.")
+            elif step == 'waiting_buy_notes':
+                notes = text if text != '-' else ''
+                total_cost = user_data['price'] + user_data['delivery'] + user_data['extra']
+                cash_paid = total_cost - user_data['debt']
+
+                purchase = {
+                    'id': int(datetime.now().timestamp() * 1000),
+                    'date': datetime.now().strftime('%Y/%m/%d'),
+                    'model': user_data['model'],
+                    'buy_price': user_data['price'],
+                    'delivery_cost': user_data['delivery'],
+                    'extra_cost': user_data['extra'],
+                    'total_cost': total_cost,
+                    'purchase_debt': user_data['debt'],
+                    'remaining_debt': user_data['debt'],
+                    'cash_paid': cash_paid,
+                    'notes': notes,
+                    'sold': False
+                }
+
+                bot_accounting.data['purchases'].append(purchase)
+                bot_accounting.save_data()
+
+                await update.message.reply_text(
+                    f"✅ خرید با موفقیت ثبت شد:\n"
+                    f"مدل: {user_data['model']}\n"
+                    f"جمع کل: {format_price(total_cost)} تومان\n"
+                    f"پرداخت نقدی: {format_price(cash_paid)} تومان\n"
+                    f"بدهی: {format_price(user_data['debt'])} تومان",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("🏠 بازگشت به منو", callback_data='main_menu')
+                    ]])
+                )
+                user_data.clear()
+
+        elif action == 'new_sell':
+            # منطق ثبت فروش - برای کامل شدن نیاز به توسعه داره
+            await update.message.reply_text("⚠️ ثبت فروش در حال توسعه است.")
+
+    else:
+        # پیام عادی
+        await update.message.reply_text(
+            "لطفاً از منوی اصلی استفاده کنید.\n"
+            "برای دیدن منو /start رو بزنید."
+        )
 
 
 # ==================== تابع اصلی اجرا ====================
 
-def run_bot():
-    """اجرای واقعی ربات - این تابع در thread جداگانه اجرا میشه"""
+def main():
+    """تابع اصلی راه‌اندازی ربات"""
     try:
         print("🤖 ربات حسابداری در حال راه‌اندازی...")
 
-        # ساخت اپلیکیشن
+        # پاک کردن webhook قبل از شروع
+        try:
+            requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook")
+            print("✅ Webhook پاک شد")
+        except:
+            pass
+
+        # ساخت اپلیکیشن با تنظیمات ساده
         app = Application.builder().token(TOKEN).build()
 
         # هندلرهای دستورات
@@ -679,30 +1088,18 @@ def run_bot():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         app.add_handler(MessageHandler(filters.Document.ALL, handle_message))
 
-        print("✅ ربات با موفقیت شروع به کار کرد!")
+        print("✅ ربات با موفقیت آماده شد! در حال شروع Polling...")
         print("📝 برای فعال کردن منوی دائمی، /setmenu رو بفرست")
 
-        # اجرا - بدون allowed_updates اضافی
-        app.run_polling()
+        # اجرای ربات
+        app.run_polling(allowed_updates=['message', 'callback_query'])
 
     except Exception as e:
-        print(f"❌ خطا در اجرای ربات: {e}")
-        print("🔄 تلاش مجدد بعد از ۵ ثانیه...")
-        time.sleep(5)
-        run_bot()
-
-
-def main():
-    """تابع اصلی - فقط thread رو شروع می‌کنه"""
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-    print("✅ ربات در thread جداگانه شروع به کار کرد")
-
-    # نگه داشتن thread اصلی
-    while True:
-        time.sleep(60)
+        print(f"❌ خطا در راه‌اندازی: {e}")
 
 
 if __name__ == '__main__':
+    print("🚀 شروع اجرای ربات حسابداری...")
+    print(f"📅 تاریخ: {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
+    print("=" * 50)
     main()
