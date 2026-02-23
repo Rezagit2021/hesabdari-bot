@@ -1,0 +1,275 @@
+{
+  "initial_capital": 400000000,
+  "purchases": [
+    {
+      "id": 1771847390067,
+      "date": "2026/02/23",
+      "model": "گیمبال اوزمو ۶",
+      "buy_price": 6000000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 6000000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 6000000,
+      "notes": "از سلماس",
+      "sold": false
+    },
+    {
+      "id": 1771847493548,
+      "date": "2026/02/23",
+      "model": "آیفون ۱۴ پرو مکس",
+      "buy_price": 98000000,
+      "delivery_cost": 350000,
+      "extra_cost": 0,
+      "total_cost": 98350000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 98350000,
+      "notes": "از مهاباد",
+      "sold": false
+    },
+    {
+      "id": 1771847572146,
+      "date": "2026/02/23",
+      "model": "آیفون ۱۲ پرو مکس",
+      "buy_price": 71000000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 71000000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 71000000,
+      "notes": "0",
+      "sold": false
+    },
+    {
+      "id": 1771847640950,
+      "date": "2026/02/23",
+      "model": "آیفون ۱۳ نرمال",
+      "buy_price": 60000000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 60000000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 60000000,
+      "notes": "0",
+      "sold": false
+    },
+    {
+      "id": 1771847784926,
+      "date": "2026/02/23",
+      "model": "بدهی ماه قبل",
+      "buy_price": 700000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 700000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 700000,
+      "notes": "0",
+      "sold": true
+    },
+    {
+      "id": 1771848377598,
+      "date": "2026/02/23",
+      "model": "داریاباند ۱",
+      "buy_price": 17500000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 17500000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 17500000,
+      "notes": "0",
+      "sold": true
+    },
+    {
+      "id": 1771848563996,
+      "date": "2026/02/23",
+      "model": "کابل تایپ سی",
+      "buy_price": 800000,
+      "delivery_cost": 0,
+      "extra_cost": 0,
+      "total_cost": 800000,
+      "purchase_debt": 0,
+      "remaining_debt": 0,
+      "cash_paid": 800000,
+      "notes": "0",
+      "sold": true
+    }
+  ],
+  "sales": [
+    {
+      "id": 1771847875863,
+      "date": "2026/02/23",
+      "purchase_id": 1771847784926,
+      "model": "بدهی ماه قبل",
+      "purchase_price": 700000,
+      "sell_price": 700000,
+      "debt": 700000,
+      "remaining_debt": 700000,
+      "profit": 0,
+      "cash_received": 0,
+      "customer_name": "سعید کارگر",
+      "customer_phone": "۰",
+      "notes": "۰"
+    },
+    {
+      "id": 1771848432408,
+      "date": "2026/02/23",
+      "purchase_id": 1771848377598,
+      "model": "داریاباند ۱",
+      "purchase_price": 17500000,
+      "sell_price": 17500000,
+      "debt": 17500000,
+      "remaining_debt": 17500000,
+      "profit": 0,
+      "cash_received": 0,
+      "customer_name": "خودم میلاد",
+      "customer_phone": "۰",
+      "notes": "۰"
+    },
+    {
+      "id": 1771848635061,
+      "date": "2026/02/23",
+      "purchase_id": 1771848563996,
+      "model": "کابل تایپ سی",
+      "purchase_price": 800000,
+      "sell_price": 1100000,
+      "debt": 1100000,
+      "remaining_debt": 1100000,
+      "profit": 300000,
+      "cash_received": 0,
+      "customer_name": "امیر محمد",
+      "customer_phone": "۰",
+      "notes": "۰"
+    }
+  ],
+  "costs": [],
+  "transactions": [
+    {
+      "id": 1771848635062,
+      "date": "2026/02/23",
+      "type": "فروش",
+      "model": "کابل تایپ سی",
+      "amount": 0,
+      "debt": 1100000,
+      "profit": 300000,
+      "description": "فروش به امیر محمد - 1,100,000 تومان"
+    },
+    {
+      "id": 1771848563997,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "کابل تایپ سی",
+      "amount": -800000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید کابل تایپ سی - 0"
+    },
+    {
+      "id": 1771848432410,
+      "date": "2026/02/23",
+      "type": "فروش",
+      "model": "داریاباند ۱",
+      "amount": 0,
+      "debt": 17500000,
+      "profit": 0,
+      "description": "فروش به خودم میلاد - 17,500,000 تومان"
+    },
+    {
+      "id": 1771848377599,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "داریاباند ۱",
+      "amount": -17500000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید داریاباند ۱ - 0"
+    },
+    {
+      "id": 1771847875864,
+      "date": "2026/02/23",
+      "type": "فروش",
+      "model": "بدهی ماه قبل",
+      "amount": 0,
+      "debt": 700000,
+      "profit": 0,
+      "description": "فروش به سعید کارگر - 700,000 تومان"
+    },
+    {
+      "id": 1771847784927,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "بدهی ماه قبل",
+      "amount": -700000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید بدهی ماه قبل - 0"
+    },
+    {
+      "id": 1771847640951,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "آیفون ۱۳ نرمال",
+      "amount": -60000000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید آیفون ۱۳ نرمال - 0"
+    },
+    {
+      "id": 1771847572147,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "آیفون ۱۲ پرو مکس",
+      "amount": -71000000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید آیفون ۱۲ پرو مکس - 0"
+    },
+    {
+      "id": 1771847493549,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "آیفون ۱۴ پرو مکس",
+      "amount": -98350000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید آیفون ۱۴ پرو مکس - از مهاباد"
+    },
+    {
+      "id": 1771847390068,
+      "date": "2026/02/23",
+      "type": "خرید",
+      "model": "گیمبال اوزمو ۶",
+      "amount": -6000000,
+      "debt": 0,
+      "profit": 0,
+      "description": "خرید گیمبال اوزمو ۶ - از سلماس"
+    },
+    {
+      "id": 1771847199070,
+      "date": "2026/02/23",
+      "type": "سرمایه اولیه",
+      "model": "-",
+      "amount": 400000000,
+      "debt": 0,
+      "profit": 0,
+      "description": "ثبت سرمایه اولیه"
+    }
+  ],
+  "debt_payments": [],
+  "purchase_debt_payments": [],
+  "partner_transactions": [
+    {
+      "id": 1771847716321,
+      "partner": "reza",
+      "type": "personal_expense",
+      "amount": 1000000,
+      "date": "2026/02/23",
+      "description": "مبدل تایپ سیب hdmi"
+    }
+  ]
+}
