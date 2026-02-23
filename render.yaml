@@ -1,10 +1,20 @@
 services:
   - type: web
-    name: hesabdari-bot
+    name: hesabdari-bot-web
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 0
+    startCommand: python app.py
+    envVars:
+      - key: TOKEN
+        value: 8678842471:AAGg09zAWG7xC2vdzVE4-0iTDaW73QUwuwc
+
+  - type: worker
+    name: hesabdari-bot-worker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
     envVars:
       - key: TOKEN
         value: 8678842471:AAGg09zAWG7xC2vdzVE4-0iTDaW73QUwuwc
