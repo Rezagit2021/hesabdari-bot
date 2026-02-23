@@ -2,48 +2,57 @@ from flask import Flask
 import os
 import subprocess
 import sys
+import threading
+import time
+import requests
 
 app = Flask(__name__)
+TOKEN = '8678842471:AAGg09zAWG7xC2vdzVE4-0iTDaW73QUwuwc'
+
 
 @app.route('/')
 def home():
     return "ربات حسابداری فعال است 🤖"
 
+
 @app.route('/health')
 def health():
     return "OK", 200
 
+
 def start_bot():
-    """اجرای ربات و ثبت خطاها در فایل"""
+    """اجرای ربات در یک فرآیند جداگانه"""
     try:
-        print("شروع فرآیند ربات...")
-        # اجرای main.py و ذخیره خروجی خطا
-        with open('bot_errors.log', 'w') as f:
-            process = subprocess.Popen(
-                [sys.executable, "main.py"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            # خواندن خطاها و چاپ آنها
-            stdout, stderr = process.communicate(timeout=5)
-            if stdout:
-                print("STDOUT:", stdout)
-            if stderr:
-                print("STDERR:", stderr)
-                with open('bot_errors.log', 'a') as log:
-                    log.write(stderr)
-        print("ربات در فرآیند جداگانه اجرا شد")
-    except subprocess.TimeoutExpired:
-        # این خطا خوبه! یعنی برنامه هنوز در حال اجراست و timeout خورده
-        print("ربات در حال اجراست (timeout expired)")
+        print("🚀 شروع فرآیند ربات...")
+        # پاک کردن webhook قبل از شروع
+        requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook")
+        print("✅ Webhook پاک شد")
+
+        # اجرای main.py به عنوان یک فرآیند جدا
+        process = subprocess.Popen([sys.executable, "main.py"])
+        print("✅ ربات در فرآیند جداگانه اجرا شد (PID: {})".format(process.pid))
     except Exception as e:
-        print(f"خطا در اجرای ربات: {e}")
-        with open('bot_errors.log', 'a') as f:
-            f.write(str(e))
+        print(f"❌ خطا در اجرای ربات: {e}")
+
+
+def keep_alive():
+    """هر ۵ دقیقه یه بار به تلگرام پینگ می‌زنیم"""
+    while True:
+        time.sleep(300)  # ۵ دقیقه
+        try:
+            requests.get(f"https://api.telegram.org/bot{TOKEN}/getMe")
+            print("💓 پینگ زده شد - ربات فعال است")
+        except Exception as e:
+            print(f"⚠️ خطا در پینگ: {e}")
+
 
 # شروع ربات
 start_bot()
+
+# راه‌اندازی ترد جداگانه برای پینگ
+ping_thread = threading.Thread(target=keep_alive)
+ping_thread.daemon = True
+ping_thread.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))
